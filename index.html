@@ -1,33 +1,375 @@
-<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b1220"><title>Macro Monitor｜B版總覽</title><style>
-*{box-sizing:border-box}body{margin:0;background:#0b1220;color:#f1f5ff;font-family:-apple-system,BlinkMacSystemFont,'Noto Sans TC',sans-serif}main{max-width:680px;margin:auto;padding:24px 17px 70px}.eyebrow{font-size:11px;color:#8ba1c0;letter-spacing:1.8px}header{display:flex;justify-content:space-between;align-items:start;gap:10px}h1{font-size:24px;margin:8px 0 0;letter-spacing:.5px}h2{font-size:19px;margin:23px 0 14px}.refresh{color:#84e3a7;font-size:13px;margin:18px 0 0}.pill{font-size:11px;border:1px solid #3a5277;color:#abc7ef;border-radius:20px;padding:7px 10px;white-space:nowrap}.status{font-size:12px;line-height:1.6;color:#aabbd3;margin:9px 0 12px}.status.error{color:#ffb1bd}.focus{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.tile{background:#1e2a3f;border-radius:15px;padding:15px 13px;min-height:118px;display:flex;flex-direction:column;justify-content:space-between}.tile .label{font-size:13px;color:#c5d0e2}.tile .value{font-size:25px;font-weight:750;line-height:1.2;letter-spacing:-.6px;margin:9px 0}.tile .bottom{display:flex;justify-content:space-between;gap:6px;color:#91a5c0;font-size:11px}.up{color:#ff9ba9}.down{color:#8cdeb1}.blue{color:#91c3ff}.gold{color:#f4c449}.panel{margin-top:13px;background:#1e2a3f;border-radius:17px;padding:19px 17px}.panel h2{margin:0 0 13px;font-size:18px}.metric{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:15px 0;border-bottom:1px solid #34435a}.metric:last-child{border-bottom:0;padding-bottom:3px}.metric .mname{font-size:14px;color:#c5d0e2}.metric .right{text-align:right;min-width:95px}.metric .num{font-size:19px;font-weight:700}.metric .sub{font-size:11px;color:#9aabc3;margin-top:5px}.note{font-size:12px;color:#91a5c0;line-height:1.8}details{margin-top:14px;background:#1e2a3f;border-radius:14px;padding:15px 17px}summary{font-weight:650;cursor:pointer}button{border:0;border-radius:10px;background:#3c6ab1;color:#fff;padding:9px 13px;font-size:12px;font-weight:650}button:disabled{opacity:.6}footer{text-align:center;color:#7288a8;font-size:11px;margin-top:24px}a{color:#9dc4ff}@media(max-width:360px){.tile{padding:12px 10px}.tile .value{font-size:22px}.metric .mname{font-size:13px}}
-</style></head><body><main><header><div><div class="eyebrow">MACRO MONITOR · PERSONAL</div><h1>全球宏觀經濟監測</h1></div><span class="pill">私人測試 V1.6</span></header><div class="refresh">↻ 自動更新中 <button id="reload" type="button">立即更新</button></div><div class="status" id="status" role="status">數據卡片已載入，正在取得官方資料…</div><h2>市場焦點</h2><section class="focus" aria-label="市場焦點"><div class="tile"><div class="label">黃金 XAU/USD</div><div class="value gold">--</div><div class="bottom"><span>尚未接入報價來源</span></div></div><div class="tile"><div class="label">白銀 XAG/USD</div><div class="value">--</div><div class="bottom"><span>尚未接入報價來源</span></div></div><div class="tile"><div class="label">VIX 波動指數</div><div class="value">--</div><div class="bottom"><span>尚未接入報價來源</span></div></div><div class="tile"><div class="label">SOFR − EFFR</div><div class="value blue" id="spread-value">--</div><div class="bottom"><span id="spread-delta">等待官方資料</span><span id="spread-date">--</span></div></div></section><section class="panel"><h2>美元流動性監測</h2><div class="metric"><div class="mname">EFFR 第 99 百分位數</div><div class="right"><div class="num" id="effr99-value">--</div><div class="sub" id="effr99-sub">等待資料</div></div></div><div class="metric"><div class="mname">SOFR 交易量</div><div class="right"><div class="num" id="sofrvol-value">--</div><div class="sub" id="sofrvol-sub">等待資料</div></div></div><div class="metric"><div class="mname">聯邦基金交易量</div><div class="right"><div class="num" id="fedvol-value">--</div><div class="sub" id="fedvol-sub">等待資料</div></div></div><div class="metric"><div class="mname">SOFR 第 99 百分位數</div><div class="right"><div class="num" id="sofr99-value">--</div><div class="sub" id="sofr99-sub">等待資料</div></div></div><div class="metric"><div class="mname">SOFR 利率</div><div class="right"><div class="num" id="sofr-value">--</div><div class="sub" id="sofr-sub">等待資料</div></div></div><div class="metric"><div class="mname">EFFR 利率</div><div class="right"><div class="num" id="effr-value">--</div><div class="sub" id="effr-sub">等待資料</div></div></div><div class="metric"><div class="mname">美國聯準會準備金</div><div class="right"><div class="num" id="reserve-value">--</div><div class="sub" id="reserve-sub">等待官方資料</div><div class="sub"><a href="https://fred.stlouisfed.org/series/WRESBAL">FRED · WRESBAL</a> · 每週更新</div></div></div></section><details><summary>資料說明（點擊展開）</summary><div class="note"><p>利率及交易量：<a href="https://markets.newyorkfed.org/static/docs/markets-api.html">紐約聯準銀行 Markets Data API</a>。SOFR − EFFR 利差以相同有效日期相減，單位 bp。EFFR 第 99 百分位數並非實際最高成交利率。</p><p>交易量以兆美元表示，變化為與前一筆有效資料的差值。黃金、白銀及 VIX 尚未接入可靠資料來源，因此只顯示空值，不使用示範行情。</p><p>本網頁為公開網址上的私人用途測試版，並非存取受限的私人網站。</p></div></details><footer>Macro Monitor · V1.6 B版測試 · 非投資建議</footer></main><script>
-(function(){
-var value=document.getElementById('reserve-value'),sub=document.getElementById('reserve-sub'),busy=false;
-var latest=null;
-function display(rows){var x=rows[0],y=rows[1];latest=x.date;value.textContent=(x.n/1000000).toFixed(3)+' 兆';var d=x.n-y.n;sub.textContent=x.date+' · '+(d>=0?'+':'')+(d/100).toFixed(2)+' 億（'+(d>=0?'+':'')+(d/y.n*100).toFixed(2)+'%）';}
-function parse(csv){var lines=csv.trim().split(/\r?\n/);if(!/^(observation_date|DATE),WRESBAL\s*$/.test(lines.shift()))throw Error('CSV 格式錯誤');var rows=lines.map(function(l){var a=l.split(',');return {date:a[0],n:Number(a[1]),raw:a[1]};}).filter(function(x){return /^\d{4}-\d{2}-\d{2}$/.test(x.date)&&x.raw&&isFinite(x.n)&&x.n>0;}).sort(function(a,b){return b.date.localeCompare(a.date);});if(rows.length<2)throw Error('資料不足');return rows;}
-function load(){if(busy)return;busy=true;var old=sub.textContent;sub.textContent='正在讀取 FRED…';var c=new AbortController();var timer=setTimeout(function(){c.abort()},15000);var start=new Date(Date.now()-90*86400000).toISOString().slice(0,10);fetch('https://fred.stlouisfed.org/graph/fredgraph.csv?id=WRESBAL&cosd='+start,{cache:'no-store',signal:c.signal}).then(function(r){if(!r.ok)throw Error('HTTP '+r.status);return r.text()}).then(function(t){display(parse(t));}).catch(function(){sub.textContent=latest?old+' · 更新失敗':'讀取失敗 · 可能有跨網域限制';}).then(function(){clearTimeout(timer);busy=false;});}
-document.getElementById('reload').addEventListener('click',load);load();
-})();
-</script><script>
+ 
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1220">
+<title>Macro Monitor｜B版總覽</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0b1220;color:#f1f5ff;font-family:-apple-system,BlinkMacSystemFont,'Noto Sans TC',sans-serif}
+main{max-width:680px;margin:auto;padding:24px 17px 70px}
+.eyebrow{font-size:11px;color:#8ba1c0;letter-spacing:1.8px}
+header{display:flex;justify-content:space-between;align-items:start;gap:10px}
+h1{font-size:24px;margin:8px 0 0;letter-spacing:.5px}
+h2{font-size:19px;margin:23px 0 14px}
+.refresh{color:#84e3a7;font-size:13px;margin:18px 0 0}
+.pill{font-size:11px;border:1px solid #3a5277;color:#abc7ef;border-radius:20px;padding:7px 10px;white-space:nowrap}
+.status{font-size:12px;line-height:1.6;color:#aabbd3;margin:9px 0 12px}
+.status.error{color:#ffb1bd}
+.focus{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.tile{background:#1e2a3f;border-radius:15px;padding:15px 13px;min-height:118px;display:flex;flex-direction:column;justify-content:space-between}
+.tile .label{font-size:13px;color:#c5d0e2}
+.tile .value{font-size:25px;font-weight:750;line-height:1.2;letter-spacing:-.6px;margin:9px 0}
+.tile .bottom{display:flex;justify-content:space-between;gap:6px;color:#91a5c0;font-size:11px}
+.blue{color:#91c3ff}
+.gold{color:#f4c449}
+.panel{margin-top:13px;background:#1e2a3f;border-radius:17px;padding:19px 17px}
+.panel h2{margin:0 0 13px;font-size:18px}
+.metric{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:15px 0;border-bottom:1px solid #34435a}
+.metric:last-child{border-bottom:0;padding-bottom:3px}
+.mname{font-size:14px;color:#c5d0e2}
+.right{text-align:right;min-width:95px}
+.num{font-size:19px;font-weight:700}
+.sub{font-size:11px;color:#9aabc3;margin-top:5px}
+.note{font-size:12px;color:#91a5c0;line-height:1.8}
+details{margin-top:14px;background:#1e2a3f;border-radius:14px;padding:15px 17px}
+summary{font-weight:650;cursor:pointer}
+button{border:0;border-radius:10px;background:#3c6ab1;color:#fff;padding:9px 13px;font-size:12px;font-weight:650}
+button:disabled{opacity:.6}
+footer{text-align:center;color:#7288a8;font-size:11px;margin-top:24px}
+a{color:#9dc4ff}
+@media(max-width:360px){.tile{padding:12px 10px}.tile .value{font-size:22px}.mname{font-size:13px}}
+</style>
+</head>
+<body>
+<main>
+<header>
+<div>
+<div class="eyebrow">MACRO MONITOR · PERSONAL</div>
+<h1>全球宏觀經濟監測</h1>
+</div>
+<span class="pill">私人測試 V1.7</span>
+</header>
+
+<div class="refresh">
+數據更新
+<button id="reload" type="button">立即更新</button>
+</div>
+<div class="status" id="status" role="status">正在取得官方資料…</div>
+
+<h2>市場焦點</h2>
+<section class="focus">
+<div class="tile">
+<div class="label">黃金 XAU/USD</div>
+<div class="value gold">--</div>
+<div class="bottom">尚未接入報價來源</div>
+</div>
+<div class="tile">
+<div class="label">白銀 XAG/USD</div>
+<div class="value">--</div>
+<div class="bottom">尚未接入報價來源</div>
+</div>
+<div class="tile">
+<div class="label">VIX 波動指數</div>
+<div class="value">--</div>
+<div class="bottom">尚未接入報價來源</div>
+</div>
+<div class="tile">
+<div class="label">SOFR − EFFR</div>
+<div class="value blue" id="spread-value">--</div>
+<div class="bottom">
+<span id="spread-delta">等待資料</span>
+<span id="spread-date">--</span>
+</div>
+</div>
+</section>
+
+<section class="panel">
+<h2>美元流動性監測</h2>
+
+<div class="metric">
+<div class="mname">EFFR 第 99 百分位數</div>
+<div class="right">
+<div class="num" id="effr99-value">--</div>
+<div class="sub" id="effr99-sub">等待資料</div>
+</div>
+</div>
+
+<div class="metric">
+<div class="mname">SOFR 交易量</div>
+<div class="right">
+<div class="num" id="sofrvol-value">--</div>
+<div class="sub" id="sofrvol-sub">等待資料</div>
+</div>
+</div>
+
+<div class="metric">
+<div class="mname">聯邦基金交易量</div>
+<div class="right">
+<div class="num" id="fedvol-value">--</div>
+<div class="sub" id="fedvol-sub">等待資料</div>
+</div>
+</div>
+
+<div class="metric">
+<div class="mname">SOFR 第 99 百分位數</div>
+<div class="right">
+<div class="num" id="sofr99-value">--</div>
+<div class="sub" id="sofr99-sub">等待資料</div>
+</div>
+</div>
+
+<div class="metric">
+<div class="mname">SOFR 利率</div>
+<div class="right">
+<div class="num" id="sofr-value">--</div>
+<div class="sub" id="sofr-sub">等待資料</div>
+</div>
+</div>
+
+<div class="metric">
+<div class="mname">EFFR 利率</div>
+<div class="right">
+<div class="num" id="effr-value">--</div>
+<div class="sub" id="effr-sub">等待資料</div>
+</div>
+</div>
+
+<div class="metric">
+<div class="mname">美國聯準會準備金</div>
+<div class="right">
+<div class="num" id="reserve-value">--</div>
+<div class="sub" id="reserve-sub">等待官方資料</div>
+<div class="sub"><a href="https://fred.stlouisfed.org/series/WRESBAL">FRED · WRESBAL</a> · 每週更新</div>
+</div>
+</div>
+</section>
+
+<details>
+<summary>資料說明（點擊展開）</summary>
+<div class="note">
+<p>利率及交易量來源：紐約聯準銀行 Markets Data API。</p>
+<p>聯準會準備金來源：FRED WRESBAL，透過 GitHub Actions 下載至 reserves.csv，網頁讀取已發布的資料檔案。</p>
+<p>SOFR − EFFR 以相同有效日期相減，單位 bp。第 99 百分位數並非最高成交利率。</p>
+<p>交易量與準備金以美元表示。變化為與前一筆有效資料比較。</p>
+<p>黃金、白銀及 VIX 尚未接入報價來源，不使用模擬行情。</p>
+<p>本網頁為公開網址上的私人用途測試版，並非存取受限網站。</p>
+</div>
+</details>
+
+<footer>Macro Monitor · V1.7 B版測試 · 非投資建議</footer>
+</main>
+
+<script>
 (function(){
 'use strict';
-var status=document.getElementById('status'),button=document.getElementById('reload');
-function elem(id){return document.getElementById(id)}
-function num(v){return v==null||v===''||!isFinite(Number(v))?null:Number(v)}
-function fmt(v,d){return v==null?'--':Number(v).toFixed(d)}
-function report(t,bad){status.textContent=t;status.className=bad?'status error':'status'}
-function item(id,list,key,scale,unit,d){if(!list||!list.length)return;var x=num(list[0][key]),y=list[1]?num(list[1][key]):null;x=x==null?null:x*scale;y=y==null?null:y*scale;elem(id+'-value').textContent=x==null?'--':fmt(x,d)+unit;elem(id+'-sub').textContent=list[0].effectiveDate+' · '+(x==null||y==null?'無前期比較':(x>=y?'+':'')+fmt(x-y,d)+unit)}
-function fetchData(path){var c=typeof AbortController==='function'?new AbortController():null;var timer;var timeout=new Promise(function(_,reject){timer=setTimeout(function(){if(c)c.abort();reject(new Error('15秒逾時'))},15000)});var opts={cache:'no-store'};if(c)opts.signal=c.signal;return Promise.race([fetch('https://markets.newyorkfed.org/api/rates/'+path,{signal:opts.signal,cache:opts.cache}).then(function(r){if(!r.ok)throw Error('HTTP '+r.status);return r.json()}).then(function(j){if(!j||!Array.isArray(j.refRates)||!j.refRates.length)throw Error('資料格式錯誤');return j.refRates.filter(function(x){return x&&x.effectiveDate}).sort(function(a,b){return b.effectiveDate.localeCompare(a.effectiveDate)})}),timeout]).then(function(v){clearTimeout(timer);return v},function(e){clearTimeout(timer);throw e})}
+
+var button=document.getElementById('reload');
+var status=document.getElementById('status');
 var busy=false;
-function load(){if(busy)return;busy=true;button.disabled=true;report('正在取得官方資料，最多等待 15 秒…',false);
-var tasks=[fetchData('secured/sofr/last/10.json'),fetchData('unsecured/effr/last/10.json')].map(function(p){return p.then(function(v){return {ok:true,data:v}},function(e){return {ok:false,error:String(e.message||e)}})});
-Promise.all(tasks).then(function(r){var a=r[0].ok?r[0].data:null,b=r[1].ok?r[1].data:null;
-if(a){item('sofrvol',a,'volumeInBillions',.001,' 兆',3);item('sofr99',a,'percentPercentile99',1,'%',2);item('sofr',a,'percentRate',1,'%',2)}
-if(b){item('effr99',b,'percentPercentile99',1,'%',2);item('fedvol',b,'volumeInBillions',.001,' 兆',3);item('effr',b,'percentRate',1,'%',2)}
-if(a&&b){var lookup={};b.forEach(function(x){lookup[x.effectiveDate]=x});var pairs=a.filter(function(x){return lookup[x.effectiveDate]}).map(function(x){return {date:x.effectiveDate,s:num(x.percentRate),e:num(lookup[x.effectiveDate].percentRate)}}).filter(function(x){return x.s!=null&&x.e!=null});var val=pairs.length?(pairs[0].s-pairs[0].e)*100:null,prev=pairs.length>1?(pairs[1].s-pairs[1].e)*100:null;elem('spread-value').textContent=val==null?'--':fmt(val,2)+' bp';elem('spread-date').textContent=pairs.length?pairs[0].date:'--';elem('spread-delta').textContent=val==null||prev==null?'無前期比較':(val>=prev?'+':'')+fmt(val-prev,2)+' bp'}
-var failures=r.map(function(x,i){return x.ok?'':(i===0?'SOFR':'EFFR')+'：'+x.error}).filter(Boolean);report(failures.length?'讀取失敗：'+failures.join('；')+'。請在 GitHub Pages HTTPS 網址測試；可能有跨網域限制。':'✓ 官方資料已更新 · '+new Date().toLocaleString('zh-TW'),failures.length>0)
-}).catch(function(e){report('程式錯誤：'+String(e.message||e),true)}).then(function(){busy=false;button.disabled=false})}
-button.addEventListener('click',load);report('程式已啟動；正在測試官方資料…',false);load();
+
+function elem(id){
+return document.getElementById(id);
+}
+
+function num(v){
+return v==null||String(v).trim()===''||!isFinite(Number(v))?null:Number(v);
+}
+
+function fmt(v,d){
+return v==null?'--':Number(v).toFixed(d);
+}
+
+function signed(v,d){
+return (v>=0?'+':'')+fmt(v,d);
+}
+
+async function request(url,json){
+var c=new AbortController();
+var timer=setTimeout(function(){c.abort()},15000);
+try{
+var r=await fetch(url,{cache:'no-store',signal:c.signal});
+if(!r.ok)throw Error('HTTP '+r.status);
+return json?await r.json():await r.text();
+}finally{
+clearTimeout(timer);
+}
+}
+
+async function loadReserves(){
+var csv=await request('./reserves.csv?t='+Date.now(),false);
+var lines=csv.trim().replace(/^\uFEFF/,'').split(/\r?\n/);
+
+if(!/^(observation_date|DATE),WRESBAL\s*$/.test(lines.shift())){
+throw Error('CSV 格式錯誤');
+}
+
+var rows=lines.map(function(l){
+var a=l.split(',');
+return {date:a[0],n:num(a[1])};
+}).filter(function(x){
+return /^\d{4}-\d{2}-\d{2}$/.test(x.date)&&x.n!==null&&x.n>0;
+}).sort(function(a,b){
+return b.date.localeCompare(a.date);
+});
+
+if(rows.length<2)throw Error('準備金資料不足');
+
+var x=rows[0],y=rows[1];
+var d=x.n-y.n;
+
+elem('reserve-value').textContent=
+fmt(x.n/1000000,3)+' 兆';
+
+elem('reserve-sub').textContent=
+x.date+' · '+signed(d/100,2)+' 億（'+signed(d/y.n*100,2)+'%）';
+}
+
+async function fetchData(path){
+var j=await request('https://markets.newyorkfed.org/api/rates/'+path,true);
+
+if(!j||!Array.isArray(j.refRates)||!j.refRates.length){
+throw Error('資料格式錯誤');
+}
+
+return j.refRates.filter(function(x){
+return x&&x.effectiveDate;
+}).sort(function(a,b){
+return b.effectiveDate.localeCompare(a.effectiveDate);
+});
+}
+
+function item(id,list,key,scale,unit,d){
+if(!list||!list.length)return;
+var x=num(list[0][key]);
+var y=list[1]?num(list[1][key]):null;
+x=x===null?null:x*scale;
+y=y===null?null:y*scale;
+
+elem(id+'-value').textContent=
+x===null?'--':fmt(x,d)+unit;
+
+elem(id+'-sub').textContent=
+list[0].effectiveDate+' · '+(x===null||y===null?'無前期比較':signed(x-y,d)+unit);
+}
+
+async function loadSOFR(){
+var a=await fetchData('secured/sofr/last/10.json');
+item('sofrvol',a,'volumeInBillions',.001,' 兆',3);
+item('sofr99',a,'percentPercentile99',1,'%',2);
+item('sofr',a,'percentRate',1,'%',2);
+return a;
+}
+
+async function loadEFFR(){
+var b=await fetchData('unsecured/effr/last/10.json');
+item('effr99',b,'percentPercentile99',1,'%',2);
+item('fedvol',b,'volumeInBillions',.001,' 兆',3);
+item('effr',b,'percentRate',1,'%',2);
+return b;
+}
+
+function spread(a,b){
+var lookup={};
+b.forEach(function(x){
+lookup[x.effectiveDate]=x;
+});
+
+var pairs=a.filter(function(x){
+return lookup[x.effectiveDate];
+}).map(function(x){
+return {
+date:x.effectiveDate,
+s:num(x.percentRate),
+e:num(lookup[x.effectiveDate].percentRate)
+};
+}).filter(function(x){
+return x.s!==null&&x.e!==null;
+});
+
+if(!pairs.length)return;
+
+var val=(pairs[0].s-pairs[0].e)*100;
+var prev=pairs.length>1?(pairs[1].s-pairs[1].e)*100:null;
+
+elem('spread-value').textContent=fmt(val,2)+' bp';
+elem('spread-date').textContent=pairs[0].date;
+elem('spread-delta').textContent=prev===null?'無前期比較':signed(val-prev,2)+' bp';
+}
+
+async function safe(name,task){
+try{
+var data=await task();
+return {ok:true,name:name,data:data};
+}catch(e){
+return {ok:false,name:name,error:e.message||String(e)};
+}
+}
+
+async function load(){
+if(busy)return;
+busy=true;
+button.disabled=true;
+status.className='status';
+status.textContent='正在取得官方資料，最多等待15秒…';
+
+try{
+var results=await Promise.all([
+safe('聯準會準備金',loadReserves),
+safe('SOFR',loadSOFR),
+safe('EFFR',loadEFFR)
+]);
+
+if(results[1].ok&&results[2].ok){
+spread(results[1].data,results[2].data);
+}
+
+var ok=results.filter(function(r){return r.ok});
+var failed=results.filter(function(r){return !r.ok});
+
+if(!results[0].ok){
+elem('reserve-sub').textContent='更新失敗：'+results[0].error;
+}
+
+if(!results[1].ok){
+['sofr','sofr99','sofrvol'].forEach(function(id){
+elem(id+'-sub').textContent='更新失敗';
+});
+}
+
+if(!results[2].ok){
+['effr','effr99','fedvol'].forEach(function(id){
+elem(id+'-sub').textContent='更新失敗';
+});
+}
+
+if(!results[1].ok||!results[2].ok){
+elem('spread-delta').textContent='更新失敗';
+}
+
+status.textContent=
+'讀取成功 '+ok.length+'/3 組資料 · '+new Date().toLocaleString('zh-TW');
+
+if(failed.length){
+status.className='status error';
+status.textContent+='；失敗：'+failed.map(function(r){
+return r.name+' '+r.error;
+}).join('；');
+}
+}catch(e){
+status.className='status error';
+status.textContent='程式錯誤：'+e.message;
+}finally{
+busy=false;
+button.disabled=false;
+}
+}
+
+button.addEventListener('click',load);
+load();
 })();
-</script></body></html>
+</script>
+</body>
+</html>
