@@ -1,0 +1,40 @@
+name: Update Federal Reserve Balances
+
+on:
+  schedule:
+    - cron: '25 23 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download FRED data
+        run: |
+          curl --fail --location --retry 3 --max-time 60 "https://fred.stlouisfed.org/graph/fredgraph.csv?id=WRESBAL" -o reserves.tmp
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+          with open("reserves.tmp") as f:
+              rows = list(csv.DictReader(f))
+          valid = [r for r in rows if r.get("WRESBAL") not in (None, "", ".")]
+          assert len(valid) >= 2
+          for row in valid[-2:]:
+              assert float(row["WRESBAL"]) > 0
+          Path("reserves.tmp").replace("reserves.csv")
+          PY
+
+      - name: Save updated data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reserves.csv
+          if ! git diff --cached --quiet; then
+            git commit -m "Update Federal Reserve balances"
+            git push
+          fi
