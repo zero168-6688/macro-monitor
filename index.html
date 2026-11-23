@@ -50,7 +50,7 @@ a{color:#9dc4ff}
 <div class="eyebrow">MACRO MONITOR · PERSONAL</div>
 <h1>全球宏觀經濟監測</h1>
 </div>
-<span class="pill">私人測試 V1.7</span>
+<span class="pill">私人測試 V1.8</span>
 </header>
 
 <div class="refresh">
@@ -145,6 +145,21 @@ a{color:#9dc4ff}
 <div class="sub"><a href="https://fred.stlouisfed.org/series/WRESBAL">FRED · WRESBAL</a> · 每週更新</div>
 </div>
 </div>
+<div class="metric">
+<div class="mname">美國商業銀行總資產</div>
+<div class="right">
+<div class="num" id="bank-value">--</div>
+<div class="sub" id="bank-sub">等待官方資料</div>
+<div class="sub"><a href="https://fred.stlouisfed.org/series/TLAACBW027NBOG">FRED · TLAACBW027NBOG</a> · 每週更新</div>
+</div>
+</div>
+<div class="metric">
+<div class="mname">準備金／商業銀行總資產</div>
+<div class="right">
+<div class="num" id="ratio-value">--</div>
+<div class="sub" id="ratio-sub">等待兩組資料</div>
+</div>
+</div>
 </section>
 
 <details>
@@ -152,6 +167,7 @@ a{color:#9dc4ff}
 <div class="note">
 <p>利率及交易量來源：紐約聯準銀行 Markets Data API。</p>
 <p>聯準會準備金來源：FRED WRESBAL，透過 GitHub Actions 下載至 reserves.csv，網頁讀取已發布的資料檔案。</p>
+<p>商業銀行總資產來源：FRED TLAACBW027NBOG，透過 GitHub Actions 更新 bank_assets.csv。原始單位為十億美元；準備金 WRESBAL 原始單位為百萬美元，計算占比時先統一單位。占比採兩組最新已發布觀測值，日期可能不同，並非嚴格同日比較。</p>
 <p>SOFR − EFFR 以相同有效日期相減，單位 bp。第 99 百分位數並非最高成交利率。</p>
 <p>交易量與準備金以美元表示。變化為與前一筆有效資料比較。</p>
 <p>黃金、白銀及 VIX 尚未接入報價來源，不使用模擬行情。</p>
@@ -159,7 +175,7 @@ a{color:#9dc4ff}
 </div>
 </details>
 
-<footer>Macro Monitor · V1.7 B版測試 · 非投資建議</footer>
+<footer>Macro Monitor · V1.8 B版測試 · 非投資建議</footer>
 </main>
 
 <script>
@@ -169,6 +185,8 @@ a{color:#9dc4ff}
 var button=document.getElementById('reload');
 var status=document.getElementById('status');
 var busy=false;
+var reserveLatest=null;
+var bankLatest=null;
 
 function elem(id){
 return document.getElementById(id);
@@ -219,12 +237,44 @@ if(rows.length<2)throw Error('準備金資料不足');
 
 var x=rows[0],y=rows[1];
 var d=x.n-y.n;
+reserveLatest=x;
 
 elem('reserve-value').textContent=
 fmt(x.n/1000000,3)+' 兆';
 
 elem('reserve-sub').textContent=
 x.date+' · '+signed(d/100,2)+' 億（'+signed(d/y.n*100,2)+'%）';
+}
+
+async function loadBankAssets(){
+var csv=await request('./bank_assets.csv?t='+Date.now(),false);
+var lines=csv.trim().replace(/^\uFEFF/,'').split(/\r?\n/);
+if(!/^(observation_date|DATE),TLAACBW027NBOG\s*$/.test(lines.shift())){
+throw Error('銀行資產 CSV 格式錯誤');
+}
+var rows=lines.map(function(l){
+var a=l.split(',');
+return {date:a[0],n:num(a[1])};
+}).filter(function(x){
+return /^\d{4}-\d{2}-\d{2}$/.test(x.date)&&x.n!==null&&x.n>0;
+}).sort(function(a,b){return b.date.localeCompare(a.date)});
+if(rows.length<2)throw Error('銀行資產資料不足');
+var x=rows[0],y=rows[1];
+bankLatest=x;
+elem('bank-value').textContent=fmt(x.n/1000,3)+' 兆';
+elem('bank-sub').textContent=x.date+' · '+signed((x.n-y.n)/100,2)+' 千億（'+signed((x.n-y.n)/y.n*100,2)+'%）';
+}
+
+function updateRatio(){
+if(!reserveLatest||!bankLatest){
+elem('ratio-value').textContent='--';
+elem('ratio-sub').textContent='需要準備金與銀行資產兩組資料';
+return;
+}
+// WRESBAL: 百萬美元；TLAACBW027NBOG: 十億美元
+var pct=reserveLatest.n/(bankLatest.n*1000)*100;
+elem('ratio-value').textContent=fmt(pct,2)+'%';
+elem('ratio-sub').textContent='準備金 '+reserveLatest.date+' · 銀行資產 '+bankLatest.date;
 }
 
 async function fetchData(path){
@@ -311,19 +361,23 @@ return {ok:false,name:name,error:e.message||String(e)};
 async function load(){
 if(busy)return;
 busy=true;
+reserveLatest=null;
+bankLatest=null;
 button.disabled=true;
 status.className='status';
-status.textContent='正在取得官方資料，最多等待15秒…';
+status.textContent='正在取得官方資料，每組最多等待15秒…';
 
 try{
 var results=await Promise.all([
 safe('聯準會準備金',loadReserves),
+safe('商業銀行總資產',loadBankAssets),
 safe('SOFR',loadSOFR),
 safe('EFFR',loadEFFR)
 ]);
 
-if(results[1].ok&&results[2].ok){
-spread(results[1].data,results[2].data);
+updateRatio();
+if(results[2].ok&&results[3].ok){
+spread(results[2].data,results[3].data);
 }
 
 var ok=results.filter(function(r){return r.ok});
@@ -334,23 +388,26 @@ elem('reserve-sub').textContent='更新失敗：'+results[0].error;
 }
 
 if(!results[1].ok){
+elem('bank-sub').textContent='更新失敗：'+results[1].error;
+}
+if(!results[2].ok){
 ['sofr','sofr99','sofrvol'].forEach(function(id){
 elem(id+'-sub').textContent='更新失敗';
 });
 }
 
-if(!results[2].ok){
+if(!results[3].ok){
 ['effr','effr99','fedvol'].forEach(function(id){
 elem(id+'-sub').textContent='更新失敗';
 });
 }
 
-if(!results[1].ok||!results[2].ok){
+if(!results[2].ok||!results[3].ok){
 elem('spread-delta').textContent='更新失敗';
 }
 
 status.textContent=
-'讀取成功 '+ok.length+'/3 組資料 · '+new Date().toLocaleString('zh-TW');
+'讀取成功 '+ok.length+'/4 組資料 · '+new Date().toLocaleString('zh-TW');
 
 if(failed.length){
 status.className='status error';
