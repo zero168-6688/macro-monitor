@@ -1,0 +1,80 @@
+name: Update TGA
+
+on:
+  schedule:
+    - cron: '45 23 * * 4'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tga-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download FRED data
+        run: |
+          START=$(date -u -d '180 days ago' +%F)
+          curl --fail --location \
+            --retry 5 --retry-delay 10 \
+            --connect-timeout 20 \
+            --max-time 120 \
+            "https://fred.stlouisfed.org/graph/fredgraph.csv?id=WTREGEN&cosd=$START" \
+            -o tga_temp.csv
+
+      - name: Validate data
+        run: |
+          python3 - <<'PY'
+          import csv
+          import math
+          from datetime import date
+
+          rows = []
+          with open('tga_temp.csv', encoding='utf-8-sig') as f:
+              reader = csv.reader(f)
+              header = next(reader)
+              assert header[0] in ('DATE', 'observation_date')
+              assert header[1] == 'WTREGEN'
+
+              for row in reader:
+                  if len(row) != 2:
+                      continue
+                  try:
+                      d = date.fromisoformat(row[0])
+                      v = float(row[1])
+                      if math.isfinite(v) and v >= 0:
+                          rows.append((d.isoformat(), v))
+                  except ValueError:
+                      continue
+
+          rows = sorted(set(rows))
+          assert len(rows) >= 2, 'Insufficient data'
+
+          with open('tga.csv', 'w', newline='') as f:
+              writer = csv.writer(f)
+              writer.writerow(['observation_date', 'WTREGEN'])
+              writer.writerows(rows)
+
+          print('Latest:', rows[-1])
+          PY
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tga.csv
+          if git diff --cached --quiet; then
+            echo "No changes"
+          else
+            git commit -m "Update TGA data"
+            git pull --rebase origin main
+            git push origin main
+          fi
