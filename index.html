@@ -53,7 +53,7 @@ a{color:#9dc4ff}
 <div class="eyebrow">MACRO MONITOR · PERSONAL</div>
 <h1>全球宏觀經濟監測</h1>
 </div>
-<span class="pill">私人測試 V1.9</span>
+<span class="pill">私人測試 V2.0</span>
 </header>
 
 <div class="refresh">
@@ -141,13 +141,15 @@ a{color:#9dc4ff}
 </div>
 
 <div class="metric">
-<div class="mname">美國聯準會準備金</div>
+<div class="mname">聯準會準備金餘額（每週平均）</div>
 <div class="right">
 <div class="num" id="reserve-value">--</div>
 <div class="sub" id="reserve-sub">等待官方資料</div>
 <div class="sub"><a href="https://fred.stlouisfed.org/series/WRESBAL">FRED · WRESBAL</a> · 每週更新</div>
 </div>
 </div>
+<div class="metric">
+<div class="mname">聯準會準備金餘額（週三當日）</div><div class="right"><div class="num" id="wed-value">--</div><div class="sub" id="wed-sub">等待官方資料</div><div class="sub"><a href="https://fred.stlouisfed.org/series/WRBWFRBL">FRED · WRBWFRBL</a> · 每週三觀測</div></div></div>
 <div class="metric">
 <div class="mname">美國商業銀行總資產</div>
 <div class="right">
@@ -157,12 +159,13 @@ a{color:#9dc4ff}
 </div>
 </div>
 <div class="metric">
-<div class="mname">準備金／商業銀行總資產</div>
+<div class="mname">每週平均準備金／商業銀行總資產</div>
 <div class="right">
 <div class="num" id="ratio-value">--</div>
 <div class="sub" id="ratio-sub">等待兩組資料</div>
 </div>
 </div>
+<div class="metric"><div class="mname">週三當日準備金／商業銀行總資產</div><div class="right"><div class="num" id="wed-ratio-value">--</div><div class="sub" id="wed-ratio-sub">等待同日資料</div></div></div>
 <div class="metric"><div class="mname">ON-RRP 隔夜逆回購餘額</div><div class="right"><div class="num" id="rrp-value">--</div><div class="sub" id="rrp-sub">等待官方資料</div><div class="sub"><a href="https://fred.stlouisfed.org/series/RRPONTSYD">FRED · RRPONTSYD</a> · 每日營業日</div></div></div>
 <div class="metric"><div class="mname">TGA 美國財政部一般帳戶餘額</div><div class="right"><div class="num" id="tga-value">--</div><div class="sub" id="tga-sub">等待官方資料</div><div class="sub"><a href="https://fred.stlouisfed.org/series/WTREGEN">FRED · WTREGEN</a> · 每週平均</div></div></div>
 </section>
@@ -172,8 +175,8 @@ a{color:#9dc4ff}
 <div class="note">
 <p>利率及交易量來源：紐約聯準銀行 Markets Data API。</p>
 <p>聯準會準備金來源：FRED WRESBAL，透過 GitHub Actions 下載至 reserves.csv，網頁讀取已發布的資料檔案。</p>
-<p>商業銀行總資產來源：FRED TLAACBW027NBOG，透過 GitHub Actions 更新 bank_assets.csv。原始單位為十億美元；準備金 WRESBAL 原始單位為百萬美元，計算占比時先統一單位。占比採兩組最新已發布觀測值，日期可能不同，並非嚴格同日比較。</p>
-<p>SOFR − EFFR 以相同有效日期相減，單位 bp。第 99 百分位數並非最高成交利率。</p>
+<p>商業銀行總資產來源：FRED TLAACBW027NBOG，透過 GitHub Actions 更新 bank_assets.csv。原始單位為十億美元；準備金 WRESBAL 原始單位為百萬美元，計算占比時先統一單位。兩種占比均採三組資料最新共同觀測日期；每週平均與週三當日的統計口徑不同。</p>
+<p>週三準備金來源：FRED WRBWFRBL（百萬美元），透過 reserves_wednesday.csv 讀取。</p><p>SOFR − EFFR 以相同有效日期相減，單位 bp。第 99 百分位數並非最高成交利率。</p>
 <p>ON-RRP：FRED RRPONTSYD（十億美元）；TGA：FRED WTREGEN（百萬美元，每週平均）。透過 GitHub CSV 讀取，顯示億美元及前期變動。前期為前一筆有效觀測值。</p>
 <p>利差燈號：≥1 bp 黃燈，低於 1 bp 綠燈；最新利率日期不同或資料缺失為灰燈。黃燈僅為門檻提示。</p>
 <p>交易量與準備金以美元表示。變化為與前一筆有效資料比較。</p>
@@ -182,7 +185,7 @@ a{color:#9dc4ff}
 </div>
 </details>
 
-<footer>Macro Monitor · V1.9 B版測試 · 非投資建議</footer>
+<footer>Macro Monitor · V2.0 B版測試 · 非投資建議</footer>
 </main>
 
 <script>
@@ -194,6 +197,7 @@ var status=document.getElementById('status');
 var busy=false;
 var reserveLatest=null;
 var bankLatest=null;
+var reserveRows=[],bankRows=[],wedRows=[];
 
 function elem(id){
 return document.getElementById(id);
@@ -208,6 +212,7 @@ return v==null?'--':Number(v).toFixed(d);
 }
 
 function signed(v,d){
+if(Number(v.toFixed(d))===0)v=0;
 return (v>=0?'+':'')+fmt(v,d);
 }
 
@@ -244,7 +249,7 @@ if(rows.length<2)throw Error('準備金資料不足');
 
 var x=rows[0],y=rows[1];
 var d=x.n-y.n;
-reserveLatest=x;
+reserveLatest=x; reserveRows=rows;
 
 elem('reserve-value').textContent=
 fmt(x.n/1000000,3)+' 兆';
@@ -267,21 +272,30 @@ return /^\d{4}-\d{2}-\d{2}$/.test(x.date)&&x.n!==null&&x.n>0;
 }).sort(function(a,b){return b.date.localeCompare(a.date)});
 if(rows.length<2)throw Error('銀行資產資料不足');
 var x=rows[0],y=rows[1];
-bankLatest=x;
+bankLatest=x; bankRows=rows;
 elem('bank-value').textContent=fmt(x.n/1000,3)+' 兆';
 elem('bank-sub').textContent=x.date+' · '+signed((x.n-y.n)/100,2)+' 千億（'+signed((x.n-y.n)/y.n*100,2)+'%）';
 }
 
-function updateRatio(){
-if(!reserveLatest||!bankLatest){
-elem('ratio-value').textContent='--';
-elem('ratio-sub').textContent='需要準備金與銀行資產兩組資料';
-return;
+async function loadWednesday(){
+ var csv=await request('./reserves_wednesday.csv?t='+Date.now(),false);
+ var lines=csv.trim().replace(/^\uFEFF/,'').split(/\r?\n/);
+ if(!/^(observation_date|DATE),WRBWFRBL\s*$/.test(lines.shift()))throw Error('CSV 格式錯誤');
+ var rows=lines.map(function(l){var a=l.split(',');return {date:a[0],n:num(a[1])};}).filter(function(x){return /^\d{4}-\d{2}-\d{2}$/.test(x.date)&&x.n!==null&&x.n>0;}).sort(function(a,b){return b.date.localeCompare(a.date)});
+ if(rows.length<2)throw Error('資料不足');
+ wedRows=rows;
+ var x=rows[0],y=rows[1],d=x.n-y.n;
+ elem('wed-value').textContent=fmt(x.n/1000000,3)+' 兆';
+ elem('wed-sub').textContent=x.date+' · '+signed(d/100,2)+' 億（'+signed(d/y.n*100,2)+'%）';
 }
-// WRESBAL: 百萬美元；TLAACBW027NBOG: 十億美元
-var pct=reserveLatest.n/(bankLatest.n*1000)*100;
-elem('ratio-value').textContent=fmt(pct,2)+'%';
-elem('ratio-sub').textContent='準備金 '+reserveLatest.date+' · 銀行資產 '+bankLatest.date;
+function updateRatio(){
+ var banks=new Map(bankRows.map(function(x){return [x.date,x.n]}));
+ var weds=new Map(wedRows.map(function(x){return [x.date,x.n]}));
+ var x=reserveRows.find(function(x){return banks.has(x.date)&&weds.has(x.date)});
+ ['ratio','wed-ratio'].forEach(function(id){
+ elem(id+'-value').textContent=x?fmt((id==='ratio'?x.n:weds.get(x.date))/(banks.get(x.date)*1000)*100,2)+'%':'--';
+ elem(id+'-sub').textContent=x?'共同觀測日期 '+x.date:'無三組共同日期或資料不足';
+ });
 }
 
 async function fetchData(path){
@@ -386,6 +400,7 @@ busy=true;
 light('','等待更新');
 reserveLatest=null;
 bankLatest=null;
+reserveRows=[];bankRows=[];wedRows=[];
 button.disabled=true;
 status.className='status';
 status.textContent='正在取得官方資料，每組最多等待15秒…';
@@ -397,9 +412,11 @@ safe('商業銀行總資產',loadBankAssets),
 safe('SOFR',loadSOFR),
 safe('EFFR',loadEFFR),
 safe('ON-RRP',function(){return loadBalance('rrp','RRPONTSYD',10)}),
-safe('TGA',function(){return loadBalance('tga','WTREGEN',0.01)})
+safe('TGA',function(){return loadBalance('tga','WTREGEN',0.01)}),
+safe('週三準備金',loadWednesday)
 ]);
 
+if(!results[6].ok){elem('wed-value').textContent='--';elem('wed-sub').textContent='更新失敗：'+results[6].error;}
 updateRatio();
 if(results[2].ok&&results[3].ok){
 spread(results[2].data,results[3].data);
@@ -434,7 +451,7 @@ elem('spread-value').textContent='--';elem('spread-date').textContent='--';
 }
 
 status.textContent=
-'讀取成功 '+ok.length+'/6 組資料 · '+new Date().toLocaleString('zh-TW');
+'讀取成功 '+ok.length+'/7 組資料 · '+new Date().toLocaleString('zh-TW');
 
 if(failed.length){
 status.className='status error';
