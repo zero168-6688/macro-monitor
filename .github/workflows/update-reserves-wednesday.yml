@@ -1,0 +1,92 @@
+name: Update Wednesday Reserve Balances
+
+on:
+  schedule:
+    - cron: '35 23 * * 4,5'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: reserves-wednesday-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download FRED data
+        run: |
+          set -euo pipefail
+          START=$(date -u -d '180 days ago' +%F)
+          curl --fail --silent --show-error --location \
+            --retry 3 --retry-delay 5 --max-time 60 \
+            "https://fred.stlouisfed.org/graph/fredgraph.csv?id=WRBWFRBL&cosd=$START" \
+            -o /tmp/reserves_wednesday.csv
+
+      - name: Validate and save CSV
+        run: |
+          python3 - <<'PY'
+          import csv
+          import math
+          from datetime import date
+
+          rows = {}
+
+          with open('/tmp/reserves_wednesday.csv',
+                    encoding='utf-8-sig') as f:
+              reader = csv.reader(f)
+              header = next(reader)
+
+              if header not in (
+                  ['observation_date', 'WRBWFRBL'],
+                  ['DATE', 'WRBWFRBL']
+              ):
+                  raise ValueError('Invalid CSV header')
+
+              for row in reader:
+                  if len(row) != 2:
+                      continue
+                  try:
+                      d = date.fromisoformat(row[0])
+                      v = float(row[1])
+                      if math.isfinite(v) and v > 0:
+                          rows[d.isoformat()] = v
+                  except ValueError:
+                      continue
+
+          if len(rows) < 2:
+              raise ValueError('Insufficient valid data')
+
+          with open('reserves_wednesday.csv', 'w',
+                    newline='', encoding='utf-8') as f:
+              writer = csv.writer(f)
+              writer.writerow(['observation_date', 'WRBWFRBL'])
+              for d, v in sorted(rows.items()):
+                  writer.writerow([d, v])
+
+          print('Latest observation:', max(rows))
+          print('Latest value:', rows[max(rows)])
+          PY
+
+      - name: Commit and push changes
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reserves_wednesday.csv
+
+          if git diff --cached --quiet; then
+            echo "No new data"
+            exit 0
+          fi
+
+          git commit -m "Update Wednesday reserve balances"
+          git pull --rebase origin main
+          git push origin main
